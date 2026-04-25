@@ -99,18 +99,21 @@ export function useActivity(): UseActivityResult {
         const wallet = getAddress(address);
         const hub = CONTRACTS.AlphaPaymentHub.proxy;
 
+        const latestBlock = await publicClient.getBlockNumber();
+        const fromBlock = latestBlock > 9999n ? latestBlock - 9999n : 0n;
+
         const [sentLogs, recvLogs] = await Promise.all([
           publicClient.getLogs({
             address: hub,
             event: paymentSentEvent,
             args: { from: wallet },
-            fromBlock: 0n,
+            fromBlock,
           }),
           publicClient.getLogs({
             address: hub,
             event: paymentSentEvent,
             args: { to: wallet },
-            fromBlock: 0n,
+            fromBlock,
           }),
         ]);
 
