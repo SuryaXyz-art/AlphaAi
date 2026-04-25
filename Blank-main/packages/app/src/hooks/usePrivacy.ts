@@ -1,0 +1,180 @@
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import {
+  useCofheActivePermit,
+  useCofheNavigateToCreatePermit,
+} from "@cofhe/react";
+import toast from "react-hot-toast";
+import { STORAGE_KEYS, getStoredJson, setStoredJson } from "@/lib/storage";
+
+interface SharedPermit {
+  address: string;
+  accessLevel: "full" | "balance-proof";
+  expiresAt: number;
+  createdAt: number;
+}
+
+interface SharedPermitsState {
+  sharedPermits: SharedPermit[];
+}
+
+function loadSharedPermits(address: string): SharedPermit[] {
+  const parsed = getStoredJson<Partial<SharedPermitsState> | null>(
+    STORAGE_KEYS.privacy(address),
+    null,
+  );
+  const loaded = parsed?.sharedPermits ?? [];
+  // Filter out expired shared permits on load
+  return loaded.filter((s) => s.expiresAt > Date.now());
+}
+
+function saveSharedPermits(address: string, sharedPermits: SharedPermit[]) {
+  setStoredJson(STORAGE_KEYS.privacy(address), { sharedPermits });
+}
+
+/**
+ * Manages FHE permit state using the real cofhe SDK hooks.
+ *
+ * - `hasPermit`, `permitExpiresAt`, and `isExpiringSoon` are derived from
+ *   `useCofheActivePermit()` which reads the SDK's live permit store.
+ * - `createPermit` delegates to `useCofheCreatePermitMutation` which signs
+ *   an EIP-712 message to derive the sealing key on-chain.
+ * - `sharePermit` / `revokePermit` remain localStorage-based because the
+ *   SDK does not manage sharing permits to arbitrary addresses (our custom
+ *   feature for accountants/auditors).
+ * - `permitCreatedAt` is not available from the SDK Permit type (which only
+ *   stores `expiration`), so we estimate it as `expiration - 7 days`.
+ */
+export function usePrivacy() {
+  const { address } = useAccount();
+
+  // ── Real SDK permit state ──────────────────────────────────────────
+  const activePermitData = useCofheActivePermit();
+
+  const hasPermit = activePermitData != null && activePermitData.isValid;
+
+  // The SDK Permit type stores `expiration` as a unix timestamp in seconds.
+  const permitExpiresAt = useMemo(() => {
+    if (!activePermitData?.permit) return null;
+    // Convert seconds to milliseconds for the UI
+    return activePermitData.permit.expiration * 1000;
+  }, [activePermitData?.permit]);
+
+  // The SDK Permit type does not include a creation timestamp.
+  // We no longer expose a fake "created at" -- the UI will show only expiry.
+  const permitCreatedAt = null;
+
+  // Check if permit is expiring soon (< 1 hour) or already expired
+  const isExpiringSoon =
+    permitExpiresAt !== null &&
+    permitExpiresAt - Date.now() < 60 * 60 * 1000 &&
+    permitExpiresAt > Date.now();
+
+  const isExpired =
+    permitExpiresAt !== null && permitExpiresAt <= Date.now();
+
+  // ── Permit creation ───────────────────────────────────────────────
+  // Real path: useCofheNavigateToCreatePermit triggers the SDK's
+  // getOrCreateSelfPermit flow, which pops an EIP-712 signature and caches
+  // the resulting permit. Returns when the permit is active so the UI can
+  // re-render with the decrypted balance immediately.
+  const navigateToCreate = useCofheNavigateToCreatePermit();
+  const [isCreating, setIsCreating] = useState(false);
+  const { disconnect } = useDisconnect();
+
+  const createPermit = useCallback(async () => {
+    if (!address) return;
+    if (isCreating) return;
+    setIsCreating(true);
+    try {
+      await navigateToCreate();
+      toast.success("Permit created — balance unlocked", { icon: "\uD83D\uDD13" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to create permit";
+      toast.error(msg);
+    } finally {
+      setIsCreating(false);
+    }
+  }, [address, isCreating, navigateToCreate]);
+
+  const reconnectWallet = useCallback(() => {
+    disconnect();
+    toast("Wallet disconnected. Please reconnect to create a fresh permit.", {
+      icon: "\uD83D\uDD04",
+      duration: 4000,
+    });
+  }, [disconnect]);
+
+  // ── Custom shared permits (localStorage) ───────────────────────────
+  const [sharedPermits, setSharedPermits] = useState<SharedPermit[]>(
+    address ? loadSharedPermits(address) : []
+  );
+
+  // Reload shared permits when wallet address changes
+  useEffect(() => {
+    if (address) {
+      setSharedPermits(loadSharedPermits(address));
+    } else {
+      setSharedPermits([]);
+    }
+  }, [address]);
+
+  const persistShared = useCallback(
+    (updated: SharedPermit[]) => {
+      if (!address) return;
+      setSharedPermits(updated);
+      saveSharedPermits(address, updated);
+    },
+    [address]
+  );
+
+  // Share data with another address
+  const sharePermit = useCallback(
+    async (targetAddress: string, accessLevel: "full" | "balance-proof", expiryHours: number) => {
+      if (!address) return;
+
+      const now = Date.now();
+      const newShare: SharedPermit = {
+        address: targetAddress.toLowerCase(),
+        accessLevel,
+        expiresAt: now + expiryHours * 60 * 60 * 1000,
+        createdAt: now,
+      };
+
+      const updated = [
+        ...sharedPermits.filter((p) => p.address !== targetAddress.toLowerCase()),
+        newShare,
+      ];
+
+      persistShared(updated);
+      toast.success(`Shared ${accessLevel} access with ${targetAddress.slice(0, 8)}...`);
+    },
+    [address, sharedPermits, persistShared]
+  );
+
+  // Revoke a shared permit
+  const revokePermit = useCallback(
+    (targetAddress: string) => {
+      const updated = sharedPermits.filter(
+        (p) => p.address !== targetAddress.toLowerCase()
+      );
+      persistShared(updated);
+      toast.success("Permit revoked");
+    },
+    [sharedPermits, persistShared]
+  );
+
+  return {
+    hasPermit,
+    permitCreatedAt,
+    permitExpiresAt,
+    isCreating,
+    sharedPermits,
+    isExpiringSoon,
+    isExpired,
+    createPermit,
+    reconnectWallet,
+    sharePermit,
+    revokePermit,
+  };
+}

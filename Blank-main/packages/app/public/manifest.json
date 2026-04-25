@@ -1,0 +1,17 @@
+{
+  "name": "Blank Pay",
+  "short_name": "Blank",
+  "description": "Private payments for the real world.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#F9FAFB",
+  "icons": [
+    {
+      "src": "/ghost.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

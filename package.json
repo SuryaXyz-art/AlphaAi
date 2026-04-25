@@ -1,0 +1,10 @@
+{
+  "name": "alpha-ai-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -F app dev",
+    "build": "pnpm -F app build",
+    "compile": "pnpm -F contracts compile"
+  }
+}
