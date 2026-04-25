@@ -65,6 +65,14 @@
   .glass-panel {
     @apply bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl backdrop-blur-xl;
   }
+
+  .keypad-grid {
+    @apply grid grid-cols-3 gap-2;
+  }
+
+  .keypad-key {
+    @apply flex items-center justify-center h-14 rounded-xl text-xl font-medium text-[var(--text-primary)] bg-[var(--glass-bg)] border border-[var(--glass-border)] transition-all hover:bg-white/10 active:scale-95 active:bg-white/15 select-none;
+  }
 }
 
 .text-amount {
