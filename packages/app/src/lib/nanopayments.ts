@@ -246,7 +246,7 @@ export function readNanoPaymentHistory(): StoredNanoPayment[] {
   }
 }
 
-export function writeNanoPaymentHistory(item: StoredNanoPayment) {
+export function writeNanoPaymentHistory(item: Omit<StoredNanoPayment, "amount"> & { amount: bigint | string }) {
   if (typeof window === "undefined") return;
   try {
     const existing = readNanoPaymentHistory();

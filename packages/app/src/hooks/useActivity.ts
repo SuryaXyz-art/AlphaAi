@@ -9,8 +9,8 @@ export interface ActivityItem {
   id: string;
   type: "sent" | "received";
   channel: "onchain" | "nanopayment";
-  from: string;
-  to: string;
+  from: Address;
+  to: Address;
   amount: bigint; // 6-decimal USDC
   note: string;
   timestamp: number; // ms
@@ -71,7 +71,7 @@ export function useActivity(): UseActivityResult {
             note: p.note || "",
             timestamp: p.timestamp,
             gatewayRef: p.reference,
-          };
+          } as ActivityItem;
         })
         .filter((x): x is ActivityItem => !!x);
 
