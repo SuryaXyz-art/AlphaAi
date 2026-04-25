@@ -1,13 +1,44 @@
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { WalletButton } from "./WalletButton";
 import { Send, QrCode, History, Bot, LayoutDashboard } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useConnect } from "wagmi";
+import { subscribeToToasts } from "../lib/toast";
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { isPending } = useConnect();
+  const [toastState, setToastState] = useState<{
+    message: string;
+    tone: "success" | "error" | "info";
+    id: number;
+  } | null>(null);
+
+  const toastStyles = useMemo(() => {
+    if (!toastState) return "";
+    if (toastState.tone === "success")
+      return "border-emerald-accent/25 bg-emerald-accent/10 text-emerald-accent";
+    if (toastState.tone === "error")
+      return "border-red-500/25 bg-red-500/10 text-red-300";
+    return "border-white/10 bg-white/[0.06] text-white";
+  }, [toastState]);
+
+  useEffect(() => {
+    return subscribeToToasts((d) => {
+      setToastState({
+        message: d.message,
+        tone: d.tone || "info",
+        id: Date.now(),
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!toastState) return;
+    const t = window.setTimeout(() => setToastState(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [toastState]);
 
   const navItems = [
     { name: "Dashboard", path: "/app", icon: <LayoutDashboard size={20} /> },
@@ -19,6 +50,18 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-void-900 text-[var(--text-primary)]">
+      {/* Toast */}
+      {toastState && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4">
+          <div
+            key={toastState.id}
+            className={`glass-panel px-4 py-2 text-xs border ${toastStyles}`}
+          >
+            {toastState.message}
+          </div>
+        </div>
+      )}
+
       {/* Wallet connect loading overlay */}
       {isPending && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">

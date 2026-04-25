@@ -21,6 +21,7 @@ import {
   DollarSign,
   Cpu,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────
@@ -70,6 +71,10 @@ export function AgentDemo() {
       { ...event, id: crypto.randomUUID(), timestamp: new Date() },
     ]);
   }, []);
+
+  const resetDemo = () => {
+    setFeed([]);
+  };
 
   // ── Start Agent Session ──────────────────────────────────────
 
@@ -377,12 +382,23 @@ export function AgentDemo() {
               <DollarSign size={16} className="text-emerald-accent" />
               Live Payment Feed
             </h3>
-            {status === "active" && (
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-accent">
-                <div className="w-2 h-2 rounded-full bg-emerald-accent animate-pulse" />
-                LIVE
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={resetDemo}
+                className="text-[10px] px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] text-[var(--text-secondary)] hover:text-white hover:bg-white/[0.06] transition-colors inline-flex items-center gap-1.5"
+                title="Clear the demo feed"
+              >
+                <RotateCcw size={12} />
+                Reset Demo
+              </button>
+              {status === "active" && (
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-accent">
+                  <div className="w-2 h-2 rounded-full bg-emerald-accent animate-pulse" />
+                  LIVE
+                </div>
+              )}
+            </div>
           </div>
 
           <div

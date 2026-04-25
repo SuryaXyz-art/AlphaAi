@@ -1,12 +1,58 @@
+import { useEffect, useRef } from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi";
 import { BlankButton } from "./ui/BlankButton";
 import { USDC_ADDRESS, USDC_ABI, formatUSDC } from "../lib/tokens";
 import { LogOut, ExternalLink } from "lucide-react";
+import { toast } from "../lib/toast";
+
+async function ensureArcTestnetInWallet() {
+  const eth = (window as any)?.ethereum;
+  if (!eth?.request) return;
+
+  const chainIdHex = "0x4cef52"; // 5042002
+
+  try {
+    await eth.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: chainIdHex }],
+    });
+  } catch (err: any) {
+    // 4902: Unrecognized chain
+    if (err?.code === 4902) {
+      await eth.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: chainIdHex,
+            chainName: "Arc Testnet",
+            rpcUrls: ["https://rpc.testnet.arc.network"],
+            nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+            blockExplorerUrls: ["https://testnet.arcscan.app"],
+          },
+        ],
+      });
+      // Attempt switch after add
+      await eth.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chainIdHex }],
+      });
+    }
+  }
+}
 
 export function WalletButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { connectors, connect, isPending } = useConnect();
+  const wasConnected = useRef(false);
+
+  useEffect(() => {
+    if (!wasConnected.current && isConnected) {
+      toast({ message: "Connected to Arc Testnet ✓", tone: "success" });
+      wasConnected.current = true;
+    }
+    if (!isConnected) wasConnected.current = false;
+  }, [isConnected]);
 
   const { data: balanceData } = useReadContract({
     address: USDC_ADDRESS,
@@ -65,7 +111,10 @@ export function WalletButton() {
   return (
     <BlankButton 
       size="sm" 
-      onClick={() => connect({ connector })}
+      onClick={async () => {
+        await ensureArcTestnetInWallet().catch(() => {});
+        connect({ connector });
+      }}
       loading={isPending}
       className="!rounded-full"
     >

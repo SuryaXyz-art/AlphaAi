@@ -9,7 +9,8 @@ import { BlankInput } from "../components/ui/BlankInput";
 import { NumericKeypad } from "../components/ui/NumericKeypad";
 import { parseUSDC, formatUSDC } from "../lib/tokens";
 import { sendNanoPayment, sendOnChainTransfer } from "../lib/nanopayments";
-import { Zap, ArrowUpRight, CheckCircle2, ExternalLink, Copy } from "lucide-react";
+import { Zap, ArrowUpRight, CheckCircle2, ExternalLink, Copy, Sparkles } from "lucide-react";
+import { CONTRACTS } from "../lib/contracts";
 
 type PaymentMode = "standard" | "nano";
 
@@ -28,6 +29,14 @@ export function Pay() {
     reference?: string;
     error?: string;
   } | null>(null);
+
+  const applyDemoMode = () => {
+    setAmount("0.000100");
+    setToAddress(CONTRACTS.AlphaAgentRegistry.address);
+    setNote("AI compute payment");
+    setMode("nano");
+    setResult(null);
+  };
 
   // Auto-select nano-payment for sub-cent amounts
   const numericAmount = parseFloat(amount || "0");
@@ -244,6 +253,15 @@ export function Pay() {
           </button>
         </div>
 
+        <button
+          onClick={applyDemoMode}
+          className="w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all border bg-white/[0.03] border-white/10 text-white hover:bg-white/[0.06] flex items-center justify-center gap-2"
+          type="button"
+        >
+          <Sparkles size={14} className="text-emerald-accent" />
+          Demo Mode (autofill $0.000100)
+        </button>
+
         <AnimatePresence>
           {mode === "nano" && (
             <motion.div
@@ -282,6 +300,10 @@ export function Pay() {
             ? `Send ${amount || "0"} USDC (Gas-Free)`
             : `Send ${amount || "0"} USDC`}
       </BlankButton>
+
+      <div className="pt-2 text-center text-[11px] text-[var(--text-tertiary)]">
+        ⚡ Powered by Circle Gateway
+      </div>
     </div>
   );
 }
