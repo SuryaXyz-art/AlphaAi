@@ -3,9 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { WalletButton } from "./WalletButton";
 import { Send, QrCode, History, Bot, LayoutDashboard } from "lucide-react";
 import { cn } from "../lib/cn";
+import { useConnect } from "wagmi";
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { isPending } = useConnect();
 
   const navItems = [
     { name: "Dashboard", path: "/app", icon: <LayoutDashboard size={20} /> },
@@ -17,6 +19,21 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-void-900 text-[var(--text-primary)]">
+      {/* Wallet connect loading overlay */}
+      {isPending && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="glass-panel p-6 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full border-2 border-emerald-accent border-t-transparent animate-spin" />
+            <div className="space-y-0.5">
+              <div className="text-sm font-semibold text-white">Connecting wallet…</div>
+              <div className="text-xs text-[var(--text-tertiary)]">
+                Confirm the request in your wallet
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="w-64 border-r border-[var(--glass-border)] bg-[var(--glass-bg)] flex-col hidden md:flex sticky top-0 h-screen">
         <div className="p-6">
@@ -69,9 +86,37 @@ export function Layout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto max-w-3xl w-full mx-auto">
+        <main className="flex-1 overflow-y-auto max-w-3xl w-full mx-auto pb-24 md:pb-0">
           {children}
         </main>
+
+        {/* Mobile bottom tab bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-t border-[var(--glass-border)]">
+          <div className="max-w-3xl mx-auto px-3 py-2">
+            <div className="grid grid-cols-5 gap-2">
+              {navItems.map((item) => {
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== "/app" && location.pathname.startsWith(item.path));
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 rounded-xl py-2 transition-all border",
+                      isActive
+                        ? "bg-emerald-accent/10 text-emerald-accent border-emerald-accent/20"
+                        : "bg-transparent text-[var(--text-tertiary)] border-transparent hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    {item.icon}
+                    <span className="text-[10px] font-medium leading-none">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
       </div>
     </div>
   );
