@@ -23,6 +23,7 @@ export interface NanoPaymentRequest {
   amount: bigint;
   from: Address;
   gatewayTo: Address;
+  note?: string;
 }
 
 export interface PaymentResult {
@@ -109,6 +110,7 @@ export async function sendNanoPayment({
   amount,
   from,
   gatewayTo,
+  note,
 }: NanoPaymentRequest): Promise<PaymentResult> {
   try {
     // ── Step 1: Hit endpoint, receive 402 ────────────────────────
@@ -172,14 +174,31 @@ export async function sendNanoPayment({
 
     if (response && response.ok) {
       const data = await response.json().catch(() => ({}));
+      const reference = data.reference || nonce;
+      writeNanoPaymentHistory({
+        reference,
+        from,
+        to,
+        amount,
+        note,
+        timestamp: Date.now(),
+      });
       return {
         success: true,
-        reference: data.reference || nonce,
+        reference,
         data,
       };
     }
 
     // If no server is running, treat as a demo — return signature as reference
+    writeNanoPaymentHistory({
+      reference: nonce,
+      from,
+      to,
+      amount,
+      note,
+      timestamp: Date.now(),
+    });
     return {
       success: true,
       reference: nonce,
@@ -194,6 +213,53 @@ export async function sendNanoPayment({
       success: false,
       error: error.message || "Nano-payment failed",
     };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Local nano-payment history (for Activity feed)
+// ───────────────────────────────────────────────────────────────────
+
+const NANO_HISTORY_KEY = "alphaai:nanoPayments:v1";
+
+export interface StoredNanoPayment {
+  reference: string;
+  from: Address;
+  to: Address;
+  amount: string; // bigint string
+  note?: string;
+  timestamp: number; // ms
+}
+
+export function readNanoPaymentHistory(): StoredNanoPayment[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(NANO_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x): x is StoredNanoPayment => !!x && typeof x === "object")
+      .slice(-500);
+  } catch {
+    return [];
+  }
+}
+
+export function writeNanoPaymentHistory(item: StoredNanoPayment) {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = readNanoPaymentHistory();
+    const next = [
+      ...existing,
+      {
+        ...item,
+        amount: item.amount.toString(),
+      },
+    ];
+    window.localStorage.setItem(NANO_HISTORY_KEY, JSON.stringify(next.slice(-500)));
+  } catch {
+    // ignore
   }
 }
 

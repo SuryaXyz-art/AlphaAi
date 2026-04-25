@@ -73,6 +73,7 @@ export function Pay() {
           amount: parsedAmount,
           from: address,
           gatewayTo: toAddress as Address,
+          note,
         });
         setResult(res);
       } else {
