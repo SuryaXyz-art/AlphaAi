@@ -8,11 +8,11 @@ import { USDC_ADDRESS } from "./tokens";
 
 export const CONTRACTS = {
   AlphaPaymentHub: {
-    proxy: "" as Address,          // ← fill after deploy
-    implementation: "" as Address,  // ← fill after deploy
+    proxy: "0x3AFdcBAe8ad0807d9205f91a06517D2678Ad7EF1" as Address,
+    implementation: "0x469Dd8405AbE801B8116183A92e97162Ec05F00D" as Address,
   },
   AlphaAgentRegistry: {
-    address: "" as Address,         // ← fill after deploy
+    address: "0xDece7f04508c8D68ad48aeB7Ca17cE7306Eb69EB" as Address,
   },
   USDC: USDC_ADDRESS as Address,
 } as const;

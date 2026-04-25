@@ -1,0 +1,18 @@
+{
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "deployer": "0x237cd22f054b34fcaFB3b270937925c046B92840",
+  "timestamp": "2026-04-25T09:13:32.466Z",
+  "contracts": {
+    "AlphaPaymentHub": {
+      "proxy": "0x3AFdcBAe8ad0807d9205f91a06517D2678Ad7EF1",
+      "implementation": "0x469Dd8405AbE801B8116183A92e97162Ec05F00D"
+    },
+    "AlphaAgentRegistry": {
+      "address": "0xDece7f04508c8D68ad48aeB7Ca17cE7306Eb69EB"
+    }
+  },
+  "tokens": {
+    "USDC": "0x3600000000000000000000000000000000000000"
+  }
+}

@@ -11,27 +11,30 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log("Account balance:", ethers.formatEther(balance));
 
-  // ── 1. Deploy AlphaPaymentHub (UUPS proxy) ────────────────────
+  // ── 1. Deploy AlphaPaymentHub ─────────────────────────────────
   console.log("\n--- Deploying AlphaPaymentHub ---");
 
   const AlphaPaymentHub = await ethers.getContractFactory("AlphaPaymentHub");
+
+  // Deploy implementation
   const hubImpl = await AlphaPaymentHub.deploy();
   await hubImpl.waitForDeployment();
   const hubImplAddress = await hubImpl.getAddress();
   console.log("AlphaPaymentHub implementation:", hubImplAddress);
 
-  // Encode initialize(address _usdc)
+  // Encode initialize call
   const initData = AlphaPaymentHub.interface.encodeFunctionData("initialize", [
     USDC_ADDRESS,
   ]);
 
-  // Deploy ERC1967Proxy
-  const ERC1967Proxy = await ethers.getContractFactory(
-    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy"
+  // Deploy ERC1967Proxy inline using its bytecode from OZ artifacts
+  const proxyArtifact = await ethers.getContractFactory(
+    "ERC1967Proxy",
+    deployer
   );
-  const hubProxy = await ERC1967Proxy.deploy(hubImplAddress, initData);
-  await hubProxy.waitForDeployment();
-  const hubProxyAddress = await hubProxy.getAddress();
+  const proxy = await proxyArtifact.deploy(hubImplAddress, initData);
+  await proxy.waitForDeployment();
+  const hubProxyAddress = await proxy.getAddress();
   console.log("AlphaPaymentHub proxy:", hubProxyAddress);
 
   // ── 2. Deploy AlphaAgentRegistry ──────────────────────────────
@@ -48,7 +51,7 @@ async function main() {
   // ── 3. Save deployment addresses ──────────────────────────────
   const deployment = {
     network: "arcTestnet",
-    chainId: 65536,
+    chainId: 5042002,
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
     contracts: {

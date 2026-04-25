@@ -53,7 +53,7 @@ export function buildPaymentAuthorization({
     domain: {
       name: "USD Coin",
       version: "2",
-      chainId: 65536n, // Arc Testnet
+      chainId: 5042002n, // Arc Testnet
       verifyingContract: USDC_ADDRESS as Address,
     },
     types: {
