@@ -5,12 +5,22 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.24",
+  solidity: {
+    version: "0.8.25",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
-    arc: {
-      url: "https://rpc.testnet.arc.network",
+    arcTestnet: {
+      url: process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network",
       chainId: 65536,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        ? [process.env.DEPLOYER_PRIVATE_KEY]
+        : [],
     },
   },
 };
