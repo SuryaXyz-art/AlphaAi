@@ -5,12 +5,13 @@ import { Pay } from "./pages/Pay";
 import { Receive } from "./pages/Receive";
 import { Activity } from "./pages/Activity";
 import { AgentDemo } from "./pages/AgentDemo";
+import { Layout } from "./components/Layout";
 
 function AppLayout() {
   return (
-    <div className="max-w-md mx-auto min-h-screen border-x border-[var(--glass-border)] bg-void-900 relative shadow-2xl overflow-hidden">
+    <Layout>
       <Outlet />
-    </div>
+    </Layout>
   );
 }
 
